@@ -1259,6 +1259,7 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
             image_index = imdb.image_index[i]
 
             # read color image
+            print('image path is ' + imdb.image_path_at(i))
             rgba = pad_im(cv2.imread(imdb.image_path_at(i), cv2.IMREAD_UNCHANGED), 16)
             if rgba.shape[2] == 4:
                 im = np.copy(rgba[:,:,:3])

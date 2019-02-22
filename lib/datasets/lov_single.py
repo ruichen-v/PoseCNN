@@ -470,6 +470,7 @@ class lov_single(datasets.imdb):
                     continue
                 cls = self.classes[int(meta_data['cls_indexes'][j])]
                 print cls
+                print '1'
                 print 'gt pose'
                 print poses_gt[:, :, j]
 

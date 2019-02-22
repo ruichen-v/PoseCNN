@@ -486,6 +486,7 @@ class ycb_single(datasets.imdb):
                     continue
                 cls = self.classes[int(meta_data['cls_indexes'][j])]
                 print cls
+                print '3'
                 print 'gt pose'
                 print poses_gt[:, :, j]
 

@@ -413,6 +413,7 @@ class yumi(datasets.imdb):
                     continue
                 cls = self.classes[int(meta_data['cls_indexes'][j])]
                 print cls
+                print '5'
                 print 'gt pose'
                 print poses_gt[:, :, j]
 

@@ -65,8 +65,10 @@ class lov(datasets.imdb):
         """
         Construct an image path from the image's "index" identifier.
         """
-
+        print('image_path_from_index: data_path is ' + self._data_path)
         image_path = os.path.join(self._data_path, index + '-color' + self._image_ext)
+        print('image_path_from_index: rest content is ' + index + '-color' + self._image_ext)
+        print('image_path_from_index: image_path is ' + image_path)
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
@@ -448,6 +450,7 @@ class lov(datasets.imdb):
                     continue
                 cls = self.classes[int(meta_data['cls_indexes'][j])]
                 print cls
+                print '2'
                 print 'gt pose'
                 print poses_gt[:, :, j]
 
@@ -460,6 +463,8 @@ class lov(datasets.imdb):
                         RT[:3, :3] = quat2mat(poses[k, :4])
                         RT[:, 3] = poses[k, 4:7]
                         print RT
+
+                        print('pose_refine is ' + str(cfg.TEST.POSE_REFINE))
 
                         if cfg.TEST.POSE_REFINE:
                             print 'translation refined pose'

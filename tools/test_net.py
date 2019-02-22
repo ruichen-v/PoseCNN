@@ -114,8 +114,10 @@ if __name__ == '__main__':
 
     if cfg.TEST.SINGLE_FRAME:
         if cfg.TEST.SEGMENTATION:
+            print ('single_frame')
             test_net_single_frame(sess, network, imdb, weights_filename, args.cad_name)
         else:
+            print ('net_detection')
             test_net_detection(sess, network, imdb, weights_filename)
     else:
         test_net(sess, network, imdb, weights_filename, args.rig_name, args.kfusion)
