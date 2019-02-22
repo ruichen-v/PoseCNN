@@ -6,6 +6,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 
 add_definitions(-std=c++11)
 add_definitions(-Wall)
@@ -70,8 +71,8 @@ link_libraries(${Pangolin_LIBRARIES}
                ${OpenCV_LIBS}
                ${NLOPT_LIBRARIES}
                ${PCL_LIBRARIES}
-               boost_python
-               boost_numpy
+               boost_python27
+               boost_numpy27
                assimp
                util)
 
