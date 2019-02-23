@@ -1443,6 +1443,7 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
         print 'im_segment: {:d}/{:d} {:.3f}s {:.3f}s' \
               .format(i, num_images, _t['im_segment'].diff, _t['misc'].diff)
 
+# Save results
         index = imdb.image_index[i]
         pos = index.find('/')
         scene_name = index[:pos]
@@ -1512,11 +1513,53 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
                                     )
                                 )
 
+# Following img saving is not implemented due to insuffienct input of ycb_adv_dataset
+
+                            # import matplotlib.pyplot as plt
+                            # fig = plt.figure()
+
+                            # # show image
+                            # ax = fig.add_subplot(1, 2, 1)
+                            # im = im[:, :, (2, 1, 0)]
+                            # plt.imshow(im)
+                            # ax.set_title('input image')
+
+                            # if cfg.TEST.POSE_REFINE:
+                            #     ax = fig.add_subplot(1, 2, 2, aspect='equal')
+                            #     plt.imshow(im)
+                            #     ax.invert_yaxis()
+                            #     for i in xrange(rois.shape[0]):
+                            #         cls = int(rois[i, 1])
+                            #         index = np.where(labels_gt == cls)
+                            #         if len(index[0]) > 0 and cls > 0:
+                            #             num = len(index[0])
+                            #             # extract 3D points
+                            #             x3d = np.ones((4, num), dtype=np.float32)
+                            #             x3d[0, :] = vertmap_gt[index[0], index[1], 0]
+                            #             x3d[1, :] = vertmap_gt[index[0], index[1], 1]
+                            #             x3d[2, :] = vertmap_gt[index[0], index[1], 2]
+
+                            #             # projection
+                            #             RT = np.zeros((3, 4), dtype=np.float32)
+                            #             RT[:3, :3] = quat2mat(poses_new[i, :4])
+                            #             RT[:, 3] = poses_new[i, 4:7]
+                            #             x2d = np.matmul(intrinsic_matrix, np.matmul(RT, x3d))
+                            #             x2d[0, :] = np.divide(x2d[0, :], x2d[2, :])
+                            #             x2d[1, :] = np.divide(x2d[1, :], x2d[2, :])
+                            #             plt.plot(x2d[0, :], x2d[1, :], '.', color=np.divide(colors[cls], 255.0), alpha=0.05)
+
+                            #     ax.set_title('projection refined by ICP')
+                            #     ax.invert_yaxis()
+                            #     ax.set_xlim([0, im.shape[1]])
+                            #     ax.set_ylim([im.shape[0], 0])
+                                    
+                            # plt.show()
+                            # fn_img = os.path.join('./benchmark_out', scene_name, 'times1/estimate.png')
+                            
+# pass original evaluation
         continue
 
         imdb.evaluate_result(i, seg, labels_gt, meta_data, output_dir)
-
-        fn_img = os.path.join('./benchmark_out', scene_name, 'times1/estimate.png')
 
         if cfg.TEST.VISUALIZE:
             if cfg.TEST.VERTEX_REG_2D:
