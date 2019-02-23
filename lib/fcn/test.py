@@ -24,6 +24,7 @@ import math
 import tensorflow as tf
 import time
 from transforms3d.quaternions import quat2mat, mat2quat
+from transforms3d.affines import decompose44
 import scipy.io
 from scipy.optimize import minimize
 from normals import gpu_normals
@@ -33,6 +34,10 @@ from normals import gpu_normals
 # from kinect_fusion import kfusion
 # from pose_refinement import refiner
 # from mpl_toolkits.mplot3d import Axes3D
+
+def writeMat2File(fo, mat):
+    for line in np.matrix(mat):
+        np.savetxt(fo, line, fmt='%f')
 
 def _get_image_blob(im, im_depth, meta_data):
     """Converts an image into a network input.
@@ -1207,6 +1212,11 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
         synthesizer = libsynthesizer.Synthesizer(cfg.CAD, cfg.POSE)
         synthesizer.setup(cfg.TRAIN.SYN_WIDTH, cfg.TRAIN.SYN_HEIGHT)
 
+    perm = xrange(num_images) # MARK RUIC always in order
+
+    if os.path.isdir('./benchmark_out'):
+        os.system('rm -rf ./benchmark_out')
+
     for i in perm:
 
         if cfg.TEST.SYNTHETIC:
@@ -1313,7 +1323,9 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
         poses_new = []
         poses_icp = []
         if cfg.TEST.VERTEX_REG_2D:
+            print('VERTEX_REG_2D')
             if cfg.TEST.POSE_REG:
+                print('POSE_REG')
                 # pose refinement
                 fx = meta_data['intrinsic_matrix'][0, 0] * im_scale
                 fy = meta_data['intrinsic_matrix'][1, 1] * im_scale
@@ -1352,6 +1364,7 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
                                            rois_icp, poses, poses_new, poses_icp, error_threshold)
                 
         elif cfg.TEST.VERTEX_REG_3D:
+            print('VERTEX_REG_3D')
             fx = meta_data['intrinsic_matrix'][0, 0] * im_scale
             fy = meta_data['intrinsic_matrix'][1, 1] * im_scale
             px = meta_data['intrinsic_matrix'][0, 2] * im_scale
@@ -1430,7 +1443,81 @@ def test_net_single_frame(sess, net, imdb, weights_filename, model_filename):
         print 'im_segment: {:d}/{:d} {:.3f}s {:.3f}s' \
               .format(i, num_images, _t['im_segment'].diff, _t['misc'].diff)
 
+        index = imdb.image_index[i]
+        pos = index.find('/')
+        scene_name = index[:pos]
+        fn_PoseResult = os.path.join('./benchmark_out', scene_name, 'times1/pose_result.txt')
+        print('saving pose to: ' + fn_PoseResult)
+        if not os.path.isdir(os.path.dirname(fn_PoseResult)):
+            os.makedirs(os.path.dirname(fn_PoseResult))
+        if os.path.exists(fn_PoseResult):
+            os.remove(fn_PoseResult)
+
+        poses_gt = meta_data['poses']
+        if len(poses_gt.shape) == 2:
+            poses_gt = np.reshape(poses_gt, (3, 4, 1))
+        num = poses_gt.shape[2]
+
+        print('rois:')
+        print(rois)
+
+        rt_matrix_34cam2baseRigid = meta_data['rotation_translation_matrix']
+        print(rt_matrix_34cam2baseRigid) # cam2base rigid
+        transMat_cam2base = np.linalg.inv(np.append(rt_matrix_34cam2baseRigid, np.array([[0,0,0,1]]), axis=0))
+        # print(transMat_cam2base)
+
+        with open(fn_PoseResult, 'w') as f:
+            for j in xrange(num):
+                if meta_data['cls_indexes'][j] <= 0:
+                    continue
+                cls = imdb.classes[int(meta_data['cls_indexes'][j])]
+                print cls
+                fn_debug = os.path.join('./benchmark_out', scene_name, 'times1/' + cls + '_debug.txt')
+                with open(fn_debug, 'w') as f_debug:
+                    for k in xrange(rois.shape[0]):
+                        cls_index = int(rois[k, 1])
+                        if cls_index == meta_data['cls_indexes'][j]:
+                            print('cls_index: \n'.format(cls_index))
+                            f_debug.write('{} Estimated Pose:\n'.format(cls))
+                            RT = np.zeros((3, 4), dtype=np.float32)
+                            RT[:3, :3] = quat2mat(poses[k, :4])
+                            RT[:, 3] = poses[k, 4:7]
+                            writeMat2File(f_debug, RT)
+
+                            f_debug.write('\ncam2base transMat:\n')
+                            writeMat2File(f_debug, transMat_cam2base)
+                            
+                            if cfg.TEST.POSE_REFINE:
+
+                                f_debug.write('\nICP refined pose\n')
+                                RT_icp = np.zeros((4, 4), dtype=np.float32)
+                                RT_icp[:3, :3] = quat2mat(poses_icp[k, :4])
+                                RT_icp[:3, 3] = poses_icp[k, 4:7]
+                                RT_icp[3, 3] = 1
+                                writeMat2File(f_debug, RT_icp)
+
+                                RT_icp_baselink = np.matmul(transMat_cam2base, RT_icp)
+
+                                save_x = RT_icp_baselink[0][3]
+                                save_y = RT_icp_baselink[1][3]
+                                save_z = RT_icp_baselink[2][3]
+
+                                _, R_pose, _, _ = decompose44(RT_icp_baselink)
+
+                                save_rw, save_rx, save_ry, save_rz = mat2quat(R_pose)
+
+                                # q is wxyz
+                                f.write('{} {} {} {} {} {} {} {}\n'.format(
+                                        cls, save_x, save_y, save_z, save_rw, save_rx, save_ry, save_rz
+                                    )
+                                )
+
+        continue
+
         imdb.evaluate_result(i, seg, labels_gt, meta_data, output_dir)
+
+        fn_img = os.path.join('./benchmark_out', scene_name, 'times1/estimate.png')
+
         if cfg.TEST.VISUALIZE:
             if cfg.TEST.VERTEX_REG_2D:
                 poses_gt = meta_data['poses']
